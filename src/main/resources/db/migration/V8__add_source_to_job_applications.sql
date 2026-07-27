@@ -1,0 +1,2 @@
+ALTER TABLE job_applications
+    ADD COLUMN source VARCHAR(30) NOT NULL DEFAULT 'OTHER';
