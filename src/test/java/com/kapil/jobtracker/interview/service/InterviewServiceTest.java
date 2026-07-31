@@ -1,7 +1,8 @@
 package com.kapil.jobtracker.interview.service;
 
-import com.kapil.jobtracker.interview.dto.InterviewRequest;
+import com.kapil.jobtracker.interview.dto.InterviewCreateRequest;
 import com.kapil.jobtracker.interview.dto.InterviewResponse;
+import com.kapil.jobtracker.interview.dto.InterviewUpdateRequest;
 import com.kapil.jobtracker.interview.entity.Interview;
 import com.kapil.jobtracker.interview.entity.InterviewStatus;
 import com.kapil.jobtracker.interview.entity.InterviewType;
@@ -20,6 +21,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,16 +39,15 @@ public class InterviewServiceTest {
 
     private User currentUser;
     private JobApplication jobApplication;
-    private InterviewRequest request;
+    private InterviewCreateRequest request;
     private Interview interview;
     private InterviewResponse expectedResponse;
+    private InterviewUpdateRequest updateRequest;
 
     @Mock
     private InterviewRepository interviewRepository;
     @Mock
     private CurrentUserService currentUserService;
-    @Mock
-    private JobApplicationService jobApplicationService;
     @Mock
     private InterviewMapper interviewMapper;
     @Mock
@@ -63,7 +67,7 @@ public class InterviewServiceTest {
         jobApplication.setId(10L);
         jobApplication.setOwner(currentUser);
 
-        request = new InterviewRequest();
+        request = new InterviewCreateRequest();
         request.setJobApplicationId(10L);
         request.setType(InterviewType.TECHNICAL);
         request.setStatus(InterviewStatus.SCHEDULED);
@@ -71,6 +75,15 @@ public class InterviewServiceTest {
 
         interview = new Interview();
         interview.setId(100L);
+
+        updateRequest = new InterviewUpdateRequest();
+        updateRequest.setType(InterviewType.TECHNICAL);
+        updateRequest.setStatus(InterviewStatus.COMPLETED);
+        updateRequest.setScheduledAt(LocalDateTime.now().minusDays(2));
+        updateRequest.setMeetingLink("https://meet.google.com/example");
+        updateRequest.setNotes("Interview completed");
+        updateRequest.setFeedback("Good interview");
+        updateRequest.setRating(4);
 
         expectedResponse = new InterviewResponse(
                 100L,
@@ -162,29 +175,35 @@ public class InterviewServiceTest {
 
     @Test
     void shouldGetAllInterviewsSuccessfully() {
+        Pageable pageable = PageRequest.of(0, 5);
 
         when(currentUserService.getCurrentUser())
                 .thenReturn(currentUser);
 
-        when(interviewRepository.findAllByJobApplication_OwnerOrderByScheduledAtAsc(currentUser))
-                .thenReturn(List.of(interview));
+        Page<Interview> interviewPage =
+                new PageImpl<>(List.of(interview), pageable, 1);
+
+        when(interviewRepository.findAllByJobApplication_Owner(
+                currentUser,
+                pageable
+        )).thenReturn(interviewPage);
 
         when(interviewMapper.toResponse(interview))
                 .thenReturn(expectedResponse);
 
-        List<InterviewResponse> responses =
-                interviewService.getAllInterviews();
+        Page<InterviewResponse> responses =
+                interviewService.getAllInterviews(pageable);
 
-        assertEquals(1, responses.size());
-        assertEquals(100L, responses.get(0).getId());
+        assertEquals(1, responses.getTotalElements());
+        assertEquals(1, responses.getContent().size());
+        assertEquals(100L, responses.getContent().get(0).getId());
 
         verify(interviewRepository)
-                .findAllByJobApplication_Owner(currentUser);
+                .findAllByJobApplication_Owner(currentUser, pageable);
     }
 
     @Test
     void shouldUpdateInterviewSuccessfully() {
-
         when(currentUserService.getCurrentUser())
                 .thenReturn(currentUser);
 
@@ -200,12 +219,14 @@ public class InterviewServiceTest {
                 .thenReturn(expectedResponse);
 
         InterviewResponse response =
-                interviewService.updateInterview(100L, request);
+                interviewService.updateInterview(100L, updateRequest);
 
         assertEquals(100L, response.getId());
-        assertEquals(request.getType(), interview.getType());
-        assertEquals(request.getStatus(), interview.getStatus());
-        assertEquals(request.getScheduledAt(), interview.getScheduledAt());
+        assertEquals(updateRequest.getType(), interview.getType());
+        assertEquals(updateRequest.getStatus(), interview.getStatus());
+        assertEquals(updateRequest.getScheduledAt(), interview.getScheduledAt());
+        assertEquals(updateRequest.getFeedback(), interview.getFeedback());
+        assertEquals(updateRequest.getRating(), interview.getRating());
 
         verify(interviewRepository).save(interview);
     }

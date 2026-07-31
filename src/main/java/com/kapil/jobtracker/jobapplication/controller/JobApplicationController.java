@@ -6,11 +6,13 @@ import com.kapil.jobtracker.jobapplication.service.JobApplicationService;
 import com.kapil.jobtracker.security.service.CurrentUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/applications")
@@ -30,11 +32,15 @@ public class JobApplicationController {
     }
 
     @GetMapping
-    public ResponseEntity<List<JobApplicationResponse>> getAllJobApplications() {
+    public ResponseEntity<Page<JobApplicationResponse>> getAllJobApplications(@ParameterObject Pageable pageable) {
         Long userId = currentUserService.getCurrentUser().getId();
 
-        List<JobApplicationResponse> responses=jobApplicationService.getAllApplicationByUserId(userId);
-        return ResponseEntity.ok(responses);
+        Page<JobApplicationResponse> responses =
+                jobApplicationService.getAllApplicationByUserId(
+                        userId,
+                        pageable
+                );
+        return new ResponseEntity<>(responses, HttpStatus.OK);
     }
 
     @GetMapping("/{applicationId}")

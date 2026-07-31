@@ -1,6 +1,6 @@
 package com.kapil.jobtracker.interview.mapper;
 
-import com.kapil.jobtracker.interview.dto.InterviewRequest;
+import com.kapil.jobtracker.interview.dto.InterviewCreateRequest;
 import com.kapil.jobtracker.interview.dto.InterviewResponse;
 import com.kapil.jobtracker.interview.entity.Interview;
 import org.springframework.stereotype.Component;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class InterviewMapper {
     
-    public Interview toEntity(InterviewRequest request){
+    public Interview toEntity(InterviewCreateRequest request){
         return Interview.builder()
                 .type(request.getType())
                 .status(request.getStatus())

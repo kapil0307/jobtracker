@@ -2,22 +2,21 @@ package com.kapil.jobtracker.interview.dto;
 
 import com.kapil.jobtracker.interview.entity.InterviewStatus;
 import com.kapil.jobtracker.interview.entity.InterviewType;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Setter
 @Getter
+@Setter
+@NoArgsConstructor
 @AllArgsConstructor
-@RequiredArgsConstructor
-public class InterviewRequest {
-
-    @NotNull(message = "Job application id cannot be null")
-    private Long jobApplicationId;
+public class InterviewUpdateRequest {
 
     @NotNull(message = "Interview type cannot be null")
     private InterviewType type;
@@ -25,10 +24,8 @@ public class InterviewRequest {
     @NotNull(message = "Interview status cannot be null")
     private InterviewStatus status;
 
-    @NotNull(message = "Scheduled Date cannot be null")
-    @Future(message = "Scheduled Date cannot be in past")
+    @NotNull(message = "Scheduled date cannot be null")
     private LocalDateTime scheduledAt;
-
 
     private String meetingLink;
     private String notes;
@@ -38,3 +35,4 @@ public class InterviewRequest {
     @Max(value = 5, message = "Rating cannot be greater than 5")
     private Integer rating;
 }
+

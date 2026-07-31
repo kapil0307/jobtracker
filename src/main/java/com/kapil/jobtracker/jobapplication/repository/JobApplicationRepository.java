@@ -1,14 +1,12 @@
 package com.kapil.jobtracker.jobapplication.repository;
 
 import com.kapil.jobtracker.company.entity.Company;
-import com.kapil.jobtracker.interview.entity.Interview;
-import com.kapil.jobtracker.interview.entity.InterviewStatus;
 import com.kapil.jobtracker.jobapplication.entity.JobApplication;
 import com.kapil.jobtracker.user.entity.User;
-import jakarta.persistence.criteria.CriteriaBuilder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -24,4 +22,9 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     boolean existsByOwnerAndCompanyAndJobTitleIgnoreCase(User user, Company company, String jobTitle);
 
     long countByOwner(User user);
+
+    Page<JobApplication> findAllByOwnerId(
+            Long ownerId,
+            Pageable pageable
+    );
 }

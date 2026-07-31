@@ -16,10 +16,11 @@ import com.kapil.jobtracker.user.entity.User;
 import com.kapil.jobtracker.user.exception.UserNotFoundException;
 import com.kapil.jobtracker.user.repository.UserRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Service
 @AllArgsConstructor
@@ -71,10 +72,9 @@ public class JobApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public List<JobApplicationResponse> getAllApplicationByUserId(Long userId) {
-        List<JobApplicationResponse> application = jobApplicationRepo.findAllByOwnerId(userId).stream()
-                .map(jobApplicationMapper::toResponse).toList();
-        return application;
+    public Page<JobApplicationResponse> getAllApplicationByUserId(Long userId, Pageable pageable) {
+        return jobApplicationRepo.findAllByOwnerId(userId, pageable)
+                .map(jobApplicationMapper::toResponse);
     }
 
     @Transactional

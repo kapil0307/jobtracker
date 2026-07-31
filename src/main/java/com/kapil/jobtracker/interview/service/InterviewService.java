@@ -1,7 +1,8 @@
 package com.kapil.jobtracker.interview.service;
 
-import com.kapil.jobtracker.interview.dto.InterviewRequest;
+import com.kapil.jobtracker.interview.dto.InterviewCreateRequest;
 import com.kapil.jobtracker.interview.dto.InterviewResponse;
+import com.kapil.jobtracker.interview.dto.InterviewUpdateRequest;
 import com.kapil.jobtracker.interview.entity.Interview;
 import com.kapil.jobtracker.interview.entity.InterviewStatus;
 import com.kapil.jobtracker.interview.exception.InterviewNotFoundException;
@@ -13,9 +14,12 @@ import com.kapil.jobtracker.jobapplication.repository.JobApplicationRepository;
 import com.kapil.jobtracker.security.service.CurrentUserService;
 import com.kapil.jobtracker.user.entity.User;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -27,7 +31,7 @@ public class InterviewService {
     private final CurrentUserService currentUserService;
 
     @Transactional
-    public InterviewResponse createInterview(InterviewRequest request) {
+    public InterviewResponse createInterview(InterviewCreateRequest request) {
         User currentUser = currentUserService.getCurrentUser();
 
         JobApplication jobApplication = jobApplicationRepo.findByIdAndOwner(request.getJobApplicationId(), currentUser)
@@ -49,14 +53,16 @@ public class InterviewService {
         return interviewMapper.toResponse(interview);
     }
 
-    public List<InterviewResponse> getAllInterviews() {
+    @Transactional(readOnly = true)
+    public Page<InterviewResponse> getAllInterviews(Pageable pageable) {
         User currentUser = currentUserService.getCurrentUser();
 
-        return interviewRepo.findAllByJobApplication_OwnerOrderByScheduledAtAsc(currentUser)
-                .stream().map(interviewMapper::toResponse).toList();
+        return interviewRepo.findAllByJobApplication_Owner(currentUser, pageable)
+                .map(interviewMapper::toResponse);
     }
 
-    public InterviewResponse updateInterview(Long interviewId, InterviewRequest request){
+    @Transactional
+    public InterviewResponse updateInterview(Long interviewId, InterviewUpdateRequest request){
         User currentUser = currentUserService.getCurrentUser();
 
         Interview interview = interviewRepo.findByIdAndJobApplication_Owner(interviewId, currentUser)
@@ -86,6 +92,18 @@ public class InterviewService {
         User currentUser = currentUserService.getCurrentUser();
         return interviewRepo.findAllByJobApplication_OwnerAndStatusOrderByScheduledAtAsc(
                 currentUser, status
+        )
+                .stream()
+                .map(interviewMapper::toResponse)
+                .toList();
+    }
+
+    public List<InterviewResponse>  getUpcomingInterviews(){
+        User currentUser = currentUserService.getCurrentUser();
+        return interviewRepo. findAllByJobApplication_OwnerAndStatusAndScheduledAtAfterOrderByScheduledAtAsc(
+                currentUser,
+                InterviewStatus.SCHEDULED,
+                LocalDateTime.now()
         )
                 .stream()
                 .map(interviewMapper::toResponse)
