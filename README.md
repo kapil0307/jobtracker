@@ -1,8 +1,8 @@
 # Job Application Tracker
 
-A secure backend application for managing companies, job applications, interviews, authentication, and dashboard statistics.
+A secure REST API for tracking companies, job applications, interviews, authentication, and personalized dashboard statistics.
 
-This project is built using Spring Boot, PostgreSQL, Spring Security, JWT, Flyway, and Maven.
+The application is built with Spring Boot, PostgreSQL, Spring Security, JWT authentication, Flyway migrations, Maven, and Docker.
 
 ---
 
@@ -12,52 +12,53 @@ This project is built using Spring Boot, PostgreSQL, Spring Security, JWT, Flywa
 
 - User registration and login
 - BCrypt password hashing
-- JWT access token authentication
-- Refresh token support
-- Logout from current device
+- JWT access-token authentication
+- Refresh-token support
+- Logout from the current device
 - Logout from all devices
 - Role-based authorization
 - `ROLE_USER`
 - `ROLE_ADMIN`
-- Custom `401 Unauthorized` response
-- Custom `403 Forbidden` response
-- Ownership-based data security
-- Cross-user access protection
-- Invalid JWT handling
-- Expired JWT handling
+- Custom `401 Unauthorized` responses
+- Custom `403 Forbidden` responses
+- Invalid and expired JWT handling
+- Ownership-based data access
+- Cross-user resource protection
 
 ### Company Management
 
-- Create company
+- Create a company
 - Get all companies
-- Get company by ID
-- Update company
-- Delete company
+- Get a company by ID
+- Update a company
+- Delete a company
 - Users can only access their own companies
 
 ### Job Application Management
 
-- Create job application
-- Get all job applications
-- Get job application by ID
-- Update job application
-- Delete job application
+- Create a job application
+- Get paginated job applications
+- Sort job applications
+- Get a job application by ID
+- Update a job application
+- Delete a job application
 - Link job applications with companies
 - Prevent duplicate applications for the same company and job title
-- Database-level duplicate protection
+- Service-level and database-level duplicate protection
 - Users can only access their own job applications
 
 ### Interview Management
 
-- Create interview
-- Get all interviews
-- Get interview by ID
-- Update interview
-- Delete interview
-- Filter interviews by status
+- Create an interview
+- Get paginated interviews
 - Sort interviews by scheduled date
+- Get an interview by ID
+- Update an interview
+- Delete an interview
+- Filter interviews by status
+- Get upcoming scheduled interviews
 - Link interviews with job applications
-- Interview rating support
+- Interview ratings
 - Interview notes and feedback
 - Users can only access their own interviews
 
@@ -69,48 +70,59 @@ This project is built using Spring Boot, PostgreSQL, Spring Security, JWT, Flywa
 - Scheduled interview count
 - Completed interview count
 - Cancelled interview count
-- User-specific dashboard statistics
+- User-specific statistics
 
 ### Validation and Error Handling
 
 - Request validation
-- Global exception handling
-- Consistent error response structure
-- Duplicate record handling
-- Not-found exception handling
 - Field-level validation messages
+- Global exception handling
+- Consistent error-response structure
+- Duplicate-record handling
+- Resource-not-found handling
 
 ### Database
 
-- PostgreSQL database
-- Flyway database migrations
-- Database schema validation
+- PostgreSQL
+- Flyway migrations
+- Hibernate schema validation
 - Unique constraints
-- Foreign key relationships
-- Cascade delete for interviews
+- Foreign-key relationships
+- Cascade deletion for interviews
+- Persistent Docker volume support
 
 ### Testing
 
 - Authentication service unit tests
-- Refresh token service unit tests
-- Security integration tests
-- Invalid JWT tests
-- Expired JWT tests
-- Role authorization tests
+- Company service unit tests
+- Job application service unit tests
 - Interview service unit tests
 - Dashboard service unit tests
-- Separate test database configuration
+- Refresh-token service unit tests
+- Security integration tests
+- Role authorization tests
+- Invalid JWT tests
+- Expired JWT tests
+- Separate test-profile configuration
+
+Current test suite:
+
+```text
+52 tests
+0 failures
+0 errors
+```
 
 ---
 
 ## Tech Stack
 
-- Java 25
+- Java 17
 - Spring Boot 4.1
-- Spring Security 7
+- Spring Security
 - Spring Data JPA
 - Hibernate
-- PostgreSQL
+- PostgreSQL 17
 - Flyway
 - JSON Web Token
 - Maven
@@ -118,8 +130,9 @@ This project is built using Spring Boot, PostgreSQL, Spring Security, JWT, Flywa
 - Jakarta Validation
 - JUnit
 - Mockito
-- Swagger
-- OpenAPI
+- Swagger / OpenAPI
+- Docker
+- Docker Compose
 
 ---
 
@@ -148,8 +161,10 @@ src
     ├── java
     │   └── com.kapil.jobtracker
     │       ├── auth
+    │       ├── company
     │       ├── dashboard
     │       ├── interview
+    │       ├── jobapplication
     │       └── security
     │
     └── resources
@@ -158,79 +173,258 @@ src
 
 ---
 
-## Prerequisites
+## Getting Started
 
-Before running the project, install:
+The recommended way to run the complete application is with Docker Compose.
 
-- Java 25
-- PostgreSQL
-- Maven, or use the included Maven Wrapper
-- Git
-- IntelliJ IDEA or another Java IDE
+Docker Compose starts:
+
+- The Spring Boot application
+- A PostgreSQL database
+- A private Docker network
+- A persistent PostgreSQL volume
 
 ---
 
-## Database Setup
+## Prerequisites
 
-Create the main PostgreSQL database:
+### Running with Docker
 
-```sql
-CREATE DATABASE job_tracker;
+Install:
+
+- Git
+- Docker Desktop
+
+### Running without Docker
+
+Install:
+
+- Java 17
+- PostgreSQL
+- Git
+- Maven, or use the included Maven Wrapper
+
+---
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/kapil0307/jobtracker.git
+cd jobtracker
 ```
-
-Create a separate test database:
-
-```sql
-CREATE DATABASE job_tracker_test;
-```
-
-Database tables are created and updated automatically using Flyway migrations.
 
 ---
 
 ## Environment Variables
 
-The application uses environment variables for sensitive values.
+Create a `.env` file in the project root.
 
-Required variables:
+You can copy the provided example file.
+
+### Windows PowerShell
+
+```powershell
+Copy-Item .env.example .env
+```
+
+### Linux or macOS
+
+```bash
+cp .env.example .env
+```
+
+Example `.env` values:
+
+```env
+DB_USERNAME=postgres
+DB_PASSWORD=your_database_password
+JWT_SECRET=your_base64_jwt_secret
+```
+
+The `.env` file contains sensitive values and must never be committed to Git.
+
+The `.env.example` file contains only placeholder values and can safely be committed.
+
+---
+
+## Run with Docker
+
+### Build and Start the Application
+
+```bash
+docker compose up -d --build
+```
+
+This command:
+
+- Builds the Spring Boot Docker image
+- Downloads the PostgreSQL image
+- Creates a Docker network
+- Creates a persistent PostgreSQL volume
+- Starts PostgreSQL
+- Waits until PostgreSQL is healthy
+- Starts the Spring Boot application
+
+### Check Container Status
+
+```bash
+docker compose ps
+```
+
+Expected services:
+
+```text
+jobtracker-app        Up
+jobtracker-postgres   Up (healthy)
+```
+
+### View Application Logs
+
+```bash
+docker compose logs -f app
+```
+
+Press `Ctrl + C` to stop viewing logs.
+
+The containers will continue running in the background.
+
+### View PostgreSQL Logs
+
+```bash
+docker compose logs -f postgres
+```
+
+### Stop the Application
+
+```bash
+docker compose down
+```
+
+This stops and removes the containers and Docker network.
+
+The PostgreSQL data remains stored in the Docker volume.
+
+### Restart the Application
+
+```bash
+docker compose up -d
+```
+
+### Rebuild After Code Changes
+
+```bash
+docker compose up -d --build
+```
+
+Run this command after changing:
+
+- Java source code
+- Maven dependencies
+- The Dockerfile
+- Application configuration included in the image
+
+### Delete Containers and Database Data
+
+```bash
+docker compose down -v
+```
+
+> **Warning:** This command deletes the PostgreSQL Docker volume. All users, companies, applications, interviews, tokens, and other saved data will be permanently removed.
+
+---
+
+## Docker Ports
+
+| Service | Host Port | Container Port |
+|---|---:|---:|
+| Spring Boot | 8080 | 8080 |
+| PostgreSQL | 5433 | 5432 |
+
+The Spring Boot container connects to PostgreSQL through the Docker network using:
+
+```text
+jdbc:postgresql://postgres:5432/job_tracker
+```
+
+The service name `postgres` acts as the database hostname inside the Docker network.
+
+---
+
+## Run without Docker
+
+### Create the Databases
+
+Create the main database:
+
+```sql
+CREATE DATABASE job_tracker;
+```
+
+Create the test database:
+
+```sql
+CREATE DATABASE job_tracker_test;
+```
+
+Flyway automatically creates and updates the required tables.
+
+### Configure Environment Variables
+
+Required:
 
 ```text
 DB_PASSWORD=your_database_password
-JWT_SECRET=your_secure_jwt_secret
+JWT_SECRET=your_base64_jwt_secret
 ```
 
-Optional variable:
+Optional:
 
 ```text
 DB_USERNAME=postgres
 ```
 
-The `application.properties` file uses:
+### Windows PowerShell
 
-```properties
-spring.datasource.username=${DB_USERNAME:postgres}
-spring.datasource.password=${DB_PASSWORD}
+```powershell
+$env:DB_USERNAME="postgres"
+$env:DB_PASSWORD="your_database_password"
+$env:JWT_SECRET="your_base64_jwt_secret"
 
-app.jwt.secret=${JWT_SECRET}
+.\mvnw.cmd spring-boot:run
 ```
 
-Never commit real passwords or secrets to GitHub.
+### Linux or macOS
+
+```bash
+export DB_USERNAME=postgres
+export DB_PASSWORD=your_database_password
+export JWT_SECRET=your_base64_jwt_secret
+
+./mvnw spring-boot:run
+```
+
+The application runs at:
+
+```text
+http://localhost:8080
+```
 
 ---
 
 ## Application Configuration
 
-Example `application.properties`:
+The application reads sensitive configuration from environment variables.
+
+Example:
 
 ```properties
 spring.application.name=jobtracker
 
-spring.datasource.url=jdbc:postgresql://localhost:5432/job_tracker
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/job_tracker}
 spring.datasource.username=${DB_USERNAME:postgres}
 spring.datasource.password=${DB_PASSWORD}
 
 spring.jpa.hibernate.ddl-auto=validate
-spring.jpa.show-sql=true
 
 app.jwt.secret=${JWT_SECRET}
 app.jwt.expiration=900000
@@ -238,40 +432,12 @@ app.jwt.expiration=900000
 app.refresh-token.expiration=604800000
 ```
 
-Token expiry configuration:
+Token expiration:
 
-```text
-Access token: 15 minutes
-Refresh token: 7 days
-```
-
----
-
-## Running the Application
-
-Using Maven Wrapper on Windows:
-
-```powershell
-mvnw.cmd spring-boot:run
-```
-
-Using Maven Wrapper on Linux or macOS:
-
-```bash
-./mvnw spring-boot:run
-```
-
-Using installed Maven:
-
-```bash
-mvn spring-boot:run
-```
-
-The application runs on:
-
-```text
-http://localhost:8080
-```
+| Token | Expiration |
+|---|---:|
+| Access token | 15 minutes |
+| Refresh token | 7 days |
 
 ---
 
@@ -283,9 +449,13 @@ After starting the application, open:
 http://localhost:8080/swagger-ui/index.html
 ```
 
-Use the Swagger **Authorize** button and provide the JWT access token.
+For protected endpoints:
 
-Example:
+1. Register a user.
+2. Log in.
+3. Copy the access token.
+4. Click the Swagger **Authorize** button.
+5. Enter:
 
 ```text
 Bearer your_access_token
@@ -295,10 +465,15 @@ Bearer your_access_token
 
 ## Main API Endpoints
 
+### User Registration
+
+```text
+POST /api/users/register
+```
+
 ### Authentication
 
 ```text
-POST /api/auth/register
 POST /api/auth/login
 POST /api/auth/refresh
 POST /api/auth/logout
@@ -325,6 +500,12 @@ PUT    /api/applications/{id}
 DELETE /api/applications/{id}
 ```
 
+Pagination and sorting example:
+
+```text
+GET /api/applications?page=0&size=10&sort=appliedDate,desc
+```
+
 ### Interviews
 
 ```text
@@ -334,6 +515,13 @@ GET    /api/interviews/{id}
 PUT    /api/interviews/{id}
 DELETE /api/interviews/{id}
 GET    /api/interviews/status/{status}
+GET    /api/interviews/upcoming
+```
+
+Pagination and sorting example:
+
+```text
+GET /api/interviews?page=0&size=10&sort=scheduledAt,asc
 ```
 
 Supported interview statuses:
@@ -355,13 +543,11 @@ GET /api/dashboard
 
 ## Example API Flow
 
-### 1. Register User
+### 1. Register a User
 
 ```http
-POST /api/auth/register
+POST /api/users/register
 ```
-
-Example request:
 
 ```json
 {
@@ -371,13 +557,11 @@ Example request:
 }
 ```
 
-### 2. Login
+### 2. Log In
 
 ```http
 POST /api/auth/login
 ```
-
-Example request:
 
 ```json
 {
@@ -386,15 +570,13 @@ Example request:
 }
 ```
 
-The login response contains an access token and refresh token.
+The response contains an access token and a refresh token.
 
-### 3. Create Company
+### 3. Create a Company
 
 ```http
 POST /api/companies
 ```
-
-Example request:
 
 ```json
 {
@@ -405,13 +587,11 @@ Example request:
 }
 ```
 
-### 4. Create Job Application
+### 4. Create a Job Application
 
 ```http
 POST /api/applications
 ```
-
-Example request:
 
 ```json
 {
@@ -427,13 +607,11 @@ Example request:
 }
 ```
 
-### 5. Create Interview
+### 5. Create an Interview
 
 ```http
 POST /api/interviews
 ```
-
-Example request:
 
 ```json
 {
@@ -442,13 +620,13 @@ Example request:
   "status": "SCHEDULED",
   "scheduledAt": "2026-08-05T11:00:00",
   "meetingLink": "https://meet.google.com/example",
-  "notes": "Prepare Java, Spring Boot and PostgreSQL",
+  "notes": "Prepare Java, Spring Boot, and PostgreSQL",
   "feedback": null,
   "rating": null
 }
 ```
 
-### 6. View Dashboard
+### 6. View the Dashboard
 
 ```http
 GET /api/dashboard
@@ -473,7 +651,7 @@ Example response:
 
 Every company, job application, interview, and dashboard record belongs to the currently authenticated user.
 
-A user cannot access another user's resources.
+A user cannot read, update, or delete another user's resources.
 
 Example:
 
@@ -483,25 +661,25 @@ User 2 requests GET /api/interviews/5
 Response: 404 Not Found
 ```
 
-The same ownership protection applies to:
+Returning `404 Not Found` prevents the API from revealing whether another user's resource exists.
 
-- Read
-- Update
-- Delete
+Ownership protection applies to:
 
-Returning `404 Not Found` prevents exposing whether another user's record exists.
+- Read operations
+- Update operations
+- Delete operations
 
 ---
 
 ## Duplicate Job Application Protection
 
-The application prevents the same user from creating duplicate job applications for the same:
+The application prevents a user from creating duplicate job applications with the same:
 
 ```text
 company + job title
 ```
 
-The comparison is case-insensitive.
+The job-title comparison is case-insensitive.
 
 These titles are treated as duplicates:
 
@@ -517,7 +695,7 @@ Duplicate requests return:
 409 Conflict
 ```
 
-Protection exists at both:
+Protection is enforced at both:
 
 - Service level
 - Database level
@@ -526,7 +704,7 @@ Protection exists at both:
 
 ## Error Response Format
 
-Errors use a consistent JSON structure:
+Errors use a consistent JSON response structure:
 
 ```json
 {
@@ -540,76 +718,69 @@ Errors use a consistent JSON structure:
 
 Common HTTP status codes:
 
-```text
-200 OK
-201 Created
-204 No Content
-400 Bad Request
-401 Unauthorized
-403 Forbidden
-404 Not Found
-409 Conflict
-```
+| Status | Meaning |
+|---:|---|
+| 200 | OK |
+| 201 | Created |
+| 204 | No Content |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 409 | Conflict |
 
 ---
 
 ## Running Tests
 
-Run all tests using installed Maven:
-
-```bash
-mvn test
-```
-
-Using Maven Wrapper on Windows:
+### Windows
 
 ```powershell
-mvnw.cmd test
+$env:TEST_DB_PASSWORD="your_test_database_password"
+.\mvnw.cmd test
 ```
 
-Using Maven Wrapper on Linux or macOS:
+### Linux or macOS
 
 ```bash
+export TEST_DB_PASSWORD=your_test_database_password
 ./mvnw test
 ```
 
-Tests use the test profile and a separate PostgreSQL test database.
+The tests use the `test` Spring profile and a separate PostgreSQL test database.
 
 ---
 
 ## Security Notes
 
-- Passwords are hashed using BCrypt.
+- Passwords are hashed with BCrypt.
 - JWT secrets are loaded from environment variables.
 - Database passwords are not stored in source code.
+- `.env` is excluded from Git.
 - Access tokens are short-lived.
 - Refresh tokens can be revoked.
 - Logout invalidates refresh tokens.
-- Role-based access is enforced.
+- Role-based authorization is enforced.
 - Users can only access their own data.
-- Cross-user resource access returns `404 Not Found`.
+- Cross-user access returns `404 Not Found`.
 
 ---
 
 ## Future Improvements
 
-Possible future additions:
-
-- Pagination
 - Search and advanced filters
-- Upcoming interviews endpoint
 - Email interview reminders
-- Password reset
+- Password-reset workflow
 - Email verification
-- CORS configuration
-- Docker support
+- Production CORS configuration
 - CI/CD pipeline
-- Deployment configuration
+- Cloud deployment
 - Frontend application
 - Audit logging
-- Soft delete
-- Application status analytics
+- Soft deletion
+- Application-status analytics
 - Interview calendar integration
+- Testcontainers integration
 
 ---
 
@@ -617,7 +788,7 @@ Possible future additions:
 
 **Kapil**
 
-GitHub:
+GitHub profile:
 
 ```text
 https://github.com/kapil0307
@@ -635,4 +806,4 @@ https://github.com/kapil0307/jobtracker
 
 ## License
 
-This project is created for learning, portfolio, and interview preparation purposes.
+This project was created for learning, portfolio development, and interview preparation.
