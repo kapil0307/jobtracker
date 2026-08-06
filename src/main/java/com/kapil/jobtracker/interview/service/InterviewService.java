@@ -11,6 +11,7 @@ import com.kapil.jobtracker.interview.repository.InterviewRepository;
 import com.kapil.jobtracker.jobapplication.entity.JobApplication;
 import com.kapil.jobtracker.jobapplication.exception.JobApplicationNotFoundException;
 import com.kapil.jobtracker.jobapplication.repository.JobApplicationRepository;
+import com.kapil.jobtracker.notification.service.NotificationService;
 import com.kapil.jobtracker.security.service.CurrentUserService;
 import com.kapil.jobtracker.user.entity.User;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,7 @@ public class InterviewService {
     private final JobApplicationRepository jobApplicationRepo;
     private final InterviewMapper interviewMapper;
     private final CurrentUserService currentUserService;
+    private final NotificationService notificationService;
 
     @Transactional
     public InterviewResponse createInterview(InterviewCreateRequest request) {
@@ -42,6 +44,9 @@ public class InterviewService {
         interview.setJobApplication(jobApplication);
         Interview savedInterview = interviewRepo.save(interview);
 
+        if(savedInterview.getStatus()!=InterviewStatus.CANCELLED && savedInterview.getStatus()!=InterviewStatus.COMPLETED){
+            notificationService.createOrUpdateInterviewReminder(savedInterview);
+        }
         return interviewMapper.toResponse(savedInterview);
     }
 
@@ -77,6 +82,14 @@ public class InterviewService {
         interview.setRating(request.getRating());
 
         Interview updated = interviewRepo.save(interview);
+
+        if(updated.getStatus()==InterviewStatus.CANCELLED || updated.getStatus()==InterviewStatus.COMPLETED){
+            notificationService.cancelInterviewReminder(updated.getId());
+        }
+        else{
+            notificationService.createOrUpdateInterviewReminder(updated);
+        }
+
         return interviewMapper.toResponse(updated);
     }
 

@@ -13,6 +13,7 @@ import com.kapil.jobtracker.jobapplication.entity.JobApplication;
 import com.kapil.jobtracker.jobapplication.exception.JobApplicationNotFoundException;
 import com.kapil.jobtracker.jobapplication.repository.JobApplicationRepository;
 import com.kapil.jobtracker.jobapplication.service.JobApplicationService;
+import com.kapil.jobtracker.notification.service.NotificationService;
 import com.kapil.jobtracker.security.service.CurrentUserService;
 import com.kapil.jobtracker.user.entity.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +53,8 @@ public class InterviewServiceTest {
     private InterviewMapper interviewMapper;
     @Mock
     private JobApplicationRepository jobApplicationRepository;
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private InterviewService interviewService;
@@ -270,5 +273,31 @@ public class InterviewServiceTest {
 
         assertEquals(1, responses.size());
         assertEquals(100L, responses.get(0).getId());
+    }
+
+    @Test
+    void shouldNotCreateReminderForCompletedInterview() {
+
+        interview.setStatus(InterviewStatus.COMPLETED);
+
+        when(currentUserService.getCurrentUser())
+                .thenReturn(currentUser);
+
+        when(jobApplicationRepository.findByIdAndOwner(10L, currentUser))
+                .thenReturn(Optional.of(jobApplication));
+
+        when(interviewMapper.toEntity(request))
+                .thenReturn(interview);
+
+        when(interviewRepository.save(interview))
+                .thenReturn(interview);
+
+        when(interviewMapper.toResponse(interview))
+                .thenReturn(expectedResponse);
+
+        interviewService.createInterview(request);
+
+        verify(notificationService, never())
+                .createOrUpdateInterviewReminder(any(Interview.class));
     }
 }
