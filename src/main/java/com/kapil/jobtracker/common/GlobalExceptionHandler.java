@@ -9,6 +9,7 @@ import com.kapil.jobtracker.interview.exception.InterviewNotFoundException;
 import com.kapil.jobtracker.jobapplication.exception.DuplicateJobApplicationException;
 import com.kapil.jobtracker.jobapplication.exception.InvalidApplicationStateException;
 import com.kapil.jobtracker.jobapplication.exception.JobApplicationNotFoundException;
+import com.kapil.jobtracker.notification.exception.NotificationNotFoundException;
 import com.kapil.jobtracker.user.exception.EmailAlreadyRegisteredException;
 import com.kapil.jobtracker.user.exception.RoleNotFoundException;
 import com.kapil.jobtracker.user.exception.UserNotFoundException;
@@ -83,7 +84,8 @@ public class GlobalExceptionHandler {
                         CompanyNotFoundException.class,
                         JobApplicationNotFoundException.class,
                         RefreshTokenNotFoundException.class,
-                        InterviewNotFoundException.class})
+                        InterviewNotFoundException.class,
+                        NotificationNotFoundException.class})
     public ResponseEntity<ErrorResponse> handleNotFound(
             RuntimeException exception,
             HttpServletRequest request
