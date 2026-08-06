@@ -1,7 +1,5 @@
 # Job Application Tracker
 
-# Job Application Tracker
-
 [![CI](https://github.com/kapil0307/jobtracker/actions/workflows/ci.yml/badge.svg)](https://github.com/kapil0307/jobtracker/actions/workflows/ci.yml)
 
 A secure REST API for tracking companies, job applications, interviews, authentication, and personalized dashboard statistics.
