@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/kapil0307/jobtracker/actions/workflows/ci.yml/badge.svg)](https://github.com/kapil0307/jobtracker/actions/workflows/ci.yml)
 
-A secure REST API for tracking companies, job applications, interviews, authentication, and personalized dashboard statistics.
+A secure REST API for tracking companies, job applications, interviews, reminder notifications, authentication, and personalized dashboard statistics.
 
-The application is built with Spring Boot, PostgreSQL, Spring Security, JWT authentication, Flyway migrations, Maven, and Docker.
+The application is built with Spring Boot, PostgreSQL, Spring Security, JWT authentication, Flyway migrations, Maven, Docker, and GitHub Actions.
 
 ---
 
@@ -64,6 +64,22 @@ The application is built with Spring Boot, PostgreSQL, Spring Security, JWT auth
 - Interview notes and feedback
 - Users can only access their own interviews
 
+
+### Reminder Notifications
+
+- Automatically create an interview reminder for eligible interviews
+- Automatically update the existing reminder when an interview is rescheduled
+- Schedule reminders 24 hours before the interview
+- Process due reminders with a scheduler that runs every minute
+- Move due reminders from `PENDING` to `SENT` and record `sentAt`
+- Let users retrieve only their own notifications
+- Let users mark their own notifications as read and record `readAt`
+- Cancel reminders when interviews become `COMPLETED` or `CANCELLED`
+- Do not create reminders for interviews scheduled in the past
+- Prevent duplicate reminders with one notification per interview
+
+> `SENT` currently means the in-app reminder has been processed by the scheduler. Actual email delivery is planned as a future improvement.
+
 ### Dashboard
 
 - Current user name
@@ -99,6 +115,7 @@ The application is built with Spring Boot, PostgreSQL, Spring Security, JWT auth
 - Company service unit tests
 - Job application service unit tests
 - Interview service unit tests
+- Notification service unit tests
 - Dashboard service unit tests
 - Refresh-token service unit tests
 - Security integration tests
@@ -110,7 +127,7 @@ The application is built with Spring Boot, PostgreSQL, Spring Security, JWT auth
 Current test suite:
 
 ```text
-52 tests
+63 tests
 0 failures
 0 errors
 ```
@@ -123,6 +140,7 @@ Current test suite:
 - Spring Boot 4.1
 - Spring Security
 - Spring Data JPA
+- Spring Scheduling
 - Hibernate
 - PostgreSQL 17
 - Flyway
@@ -135,6 +153,7 @@ Current test suite:
 - Swagger / OpenAPI
 - Docker
 - Docker Compose
+- GitHub Actions
 
 ---
 
@@ -151,13 +170,16 @@ src
 │   │       ├── exception
 │   │       ├── interview
 │   │       ├── jobapplication
+│   │       ├── notification
 │   │       ├── security
 │   │       └── user
 │   │
 │   └── resources
 │       ├── db
 │       │   └── migration
-│       └── application.properties
+│       ├── application.properties
+│       ├── application-dev.properties
+│       └── application-prod.properties
 │
 └── test
     ├── java
@@ -167,11 +189,38 @@ src
     │       ├── dashboard
     │       ├── interview
     │       ├── jobapplication
+    │       ├── notification
     │       └── security
     │
     └── resources
         └── application-test.properties
 ```
+
+---
+
+
+## Spring Profiles
+
+The project uses separate Spring profiles for local development, testing, and production.
+
+### Development (`dev`)
+
+The development profile enables verbose Hibernate SQL logging and formatted SQL output for local debugging.
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="dev"
+.\mvnw.cmd spring-boot:run
+```
+
+### Test (`test`)
+
+The test profile uses the separate PostgreSQL database `job_tracker_test`.
+
+### Production (`prod`)
+
+The production profile is designed for Docker/cloud deployment and uses environment variables such as `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, and `PORT`. Production also disables SQL logging and Swagger/OpenAPI, hides detailed health information, enables forwarded-header handling and graceful shutdown, and suppresses detailed exception output.
+
+Docker Compose runs the application with the `prod` profile.
 
 ---
 
@@ -280,6 +329,22 @@ jobtracker-app        Up
 jobtracker-postgres   Up (healthy)
 ```
 
+### Check Application Health
+
+Open:
+
+```text
+http://localhost:8080/actuator/health
+```
+
+Expected status:
+
+```json
+{
+  "status": "UP"
+}
+```
+
 ### View Application Logs
 
 ```bash
@@ -331,7 +396,7 @@ Run this command after changing:
 docker compose down -v
 ```
 
-> **Warning:** This command deletes the PostgreSQL Docker volume. All users, companies, applications, interviews, tokens, and other saved data will be permanently removed.
+> **Warning:** This command deletes the PostgreSQL Docker volume. All users, companies, applications, interviews, notifications, tokens, and other saved data will be permanently removed.
 
 ---
 
@@ -391,6 +456,7 @@ DB_USERNAME=postgres
 $env:DB_USERNAME="postgres"
 $env:DB_PASSWORD="your_database_password"
 $env:JWT_SECRET="your_base64_jwt_secret"
+$env:SPRING_PROFILES_ACTIVE="dev"
 
 .\mvnw.cmd spring-boot:run
 ```
@@ -401,6 +467,7 @@ $env:JWT_SECRET="your_base64_jwt_secret"
 export DB_USERNAME=postgres
 export DB_PASSWORD=your_database_password
 export JWT_SECRET=your_base64_jwt_secret
+export SPRING_PROFILES_ACTIVE=dev
 
 ./mvnw spring-boot:run
 ```
@@ -445,7 +512,7 @@ Token expiration:
 
 ## Swagger Documentation
 
-After starting the application, open:
+Start the application with the `dev` profile and open:
 
 ```text
 http://localhost:8080/swagger-ui/index.html
@@ -462,6 +529,8 @@ For protected endpoints:
 ```text
 Bearer your_access_token
 ```
+
+Swagger/OpenAPI is disabled in the `prod` profile.
 
 ---
 
@@ -535,11 +604,57 @@ CANCELLED
 RESCHEDULED
 ```
 
+
+### Notifications
+
+```text
+GET   /api/notifications
+PATCH /api/notifications/{notificationId}/read
+```
+
+`GET /api/notifications` returns only the currently authenticated user's notifications, ordered from newest to oldest.
+
+`PATCH /api/notifications/{notificationId}/read` marks only the authenticated user's notification as read.
+
+Notification statuses include:
+
+```text
+PENDING
+SENT
+FAILED
+CANCELLED
+```
+
 ### Dashboard
 
 ```text
 GET /api/dashboard
 ```
+
+---
+
+
+## Interview Reminder Flow
+
+When an eligible interview is created or updated:
+
+```text
+Interview create/update
+        ↓
+Notification created or updated
+        ↓
+scheduledFor = interview time - 24 hours
+        ↓
+Scheduler checks every minute
+        ↓
+Due PENDING notification
+        ↓
+Status becomes SENT
+        ↓
+sentAt is recorded
+```
+
+If the interview becomes completed or cancelled, the existing reminder becomes `CANCELLED` and the scheduler ignores it. If the interview date is already in the past, a new reminder is not created. A unique database constraint prevents multiple reminder records for the same interview.
 
 ---
 
@@ -628,7 +743,19 @@ POST /api/interviews
 }
 ```
 
-### 6. View the Dashboard
+### 6. Get Notifications
+
+```http
+GET /api/notifications
+```
+
+### 7. Mark a Notification as Read
+
+```http
+PATCH /api/notifications/1/read
+```
+
+### 8. View the Dashboard
 
 ```http
 GET /api/dashboard
@@ -651,7 +778,7 @@ Example response:
 
 ## Ownership Security
 
-Every company, job application, interview, and dashboard record belongs to the currently authenticated user.
+Every company, job application, interview, notification, and dashboard record belongs to the currently authenticated user.
 
 A user cannot read, update, or delete another user's resources.
 
@@ -751,6 +878,34 @@ export TEST_DB_PASSWORD=your_test_database_password
 
 The tests use the `test` Spring profile and a separate PostgreSQL test database.
 
+Current local result:
+
+```text
+Tests run: 63
+Failures: 0
+Errors: 0
+Skipped: 0
+BUILD SUCCESS
+```
+
+
+---
+
+## Continuous Integration
+
+GitHub Actions configuration is stored in `.github/workflows/ci.yml`. The workflow is configured for pushes to `main` and pull requests targeting `main`.
+
+The CI job:
+
+1. Checks out the repository.
+2. Starts a PostgreSQL 17 service container.
+3. Configures Java 17.
+4. Uses Maven dependency caching.
+5. Makes the Maven Wrapper executable.
+6. Runs the complete Maven test suite.
+
+The CI status badge appears at the top of this README.
+
 ---
 
 ## Security Notes
@@ -771,12 +926,18 @@ The tests use the `test` Spring profile and a separate PostgreSQL test database.
 ## Future Improvements
 
 - Search and advanced filters
-- Email interview reminders
+- Real email interview reminders
+- Amazon SES integration
+- Unread-notification count
+- Mark all notifications as read
+- Configurable reminder time
+- Retry handling for failed notification delivery
+- Time-zone-aware reminder scheduling
 - Password-reset workflow
 - Email verification
 - Production CORS configuration
-- CI/CD pipeline
-- Cloud deployment
+- AWS cloud deployment
+- Automated CD pipeline
 - Frontend application
 - Audit logging
 - Soft deletion
