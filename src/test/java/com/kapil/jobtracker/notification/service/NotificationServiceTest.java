@@ -18,8 +18,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +36,8 @@ public class NotificationServiceTest {
     private CurrentUserService currentUserService;
     @Mock
     private NotificationMapper notificationMapper;
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -52,6 +52,7 @@ public class NotificationServiceTest {
     void setUp(){
         currentUser = new User();
         currentUser.setId(1L);
+        currentUser.setEmail("test@example.com");
 
         jobApplication = new JobApplication();
         jobApplication.setId(10L);
@@ -242,6 +243,11 @@ public class NotificationServiceTest {
 
         verify(notificationRepo)
                 .saveAll(List.of(notification, secondNotification));
+        verify(emailService).sendInterviewReminder(
+                currentUser.getEmail(),
+                notification.getTitle(),
+                notification.getMessage()
+        );
     }
 
     @Test
@@ -300,5 +306,38 @@ public class NotificationServiceTest {
 
         verify(notificationRepo, never())
                 .save(any(Notification.class));
+    }
+
+    @Test
+    void shouldMarkNotificationFailedWhenEmailSendingFails() {
+
+        currentUser.setEmail("test@example.com");
+
+        when(notificationRepo
+                .findByStatusAndScheduledForLessThanEqual(
+                        eq(NotificationStatus.PENDING),
+                        any(LocalDateTime.class)
+                ))
+                .thenReturn(List.of(notification));
+
+        doThrow(new RuntimeException("Mail failed"))
+                .when(emailService)
+                .sendInterviewReminder(
+                        anyString(),
+                        anyString(),
+                        anyString()
+                );
+
+        notificationService.processDueNotifications();
+
+        assertEquals(
+                NotificationStatus.FAILED,
+                notification.getStatus()
+        );
+
+        assertNull(notification.getSentAt());
+
+        verify(notificationRepo)
+                .saveAll(List.of(notification));
     }
 }

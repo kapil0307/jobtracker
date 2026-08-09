@@ -24,6 +24,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepo;
     private final CurrentUserService currentUserService;
     private final NotificationMapper notificationMapper;
+    private final EmailService emailService;
 
     @Transactional
     public void createOrUpdateInterviewReminder(Interview interview) {
@@ -88,9 +89,21 @@ public class NotificationService {
                 now
         );
 
-        dueNotifications.forEach(notification -> {notification.setStatus(NotificationStatus.SENT);
-                    notification.setSentAt(now);
-        });
+        for(Notification notification: dueNotifications){
+            try{
+                String toEmail = notification.getUser().getEmail();
+                emailService.sendInterviewReminder(
+                        toEmail,
+                        notification.getTitle(),
+                        notification.getMessage()
+                );
+                notification.setStatus(NotificationStatus.SENT);
+                notification.setSentAt(now);
+            }
+            catch (Exception e){
+                notification.setStatus(NotificationStatus.FAILED);
+            }
+        }
 
         notificationRepo.saveAll(dueNotifications);
     }
