@@ -64,7 +64,6 @@ The application is built with Spring Boot, PostgreSQL, Spring Security, JWT auth
 - Interview notes and feedback
 - Users can only access their own interviews
 
-
 ### Reminder Notifications
 
 - Automatically create an interview reminder for eligible interviews
@@ -197,7 +196,6 @@ src
 ```
 
 ---
-
 
 ## Spring Profiles
 
@@ -402,10 +400,10 @@ docker compose down -v
 
 ## Docker Ports
 
-| Service | Host Port | Container Port |
-|---|---:|---:|
-| Spring Boot | 8080 | 8080 |
-| PostgreSQL | 5433 | 5432 |
+| Service     | Host Port | Container Port |
+| ----------- | --------: | -------------: |
+| Spring Boot |      8080 |           8080 |
+| PostgreSQL  |      5433 |           5432 |
 
 The Spring Boot container connects to PostgreSQL through the Docker network using:
 
@@ -503,10 +501,10 @@ app.refresh-token.expiration=604800000
 
 Token expiration:
 
-| Token | Expiration |
-|---|---:|
-| Access token | 15 minutes |
-| Refresh token | 7 days |
+| Token         | Expiration |
+| ------------- | ---------: |
+| Access token  | 15 minutes |
+| Refresh token |     7 days |
 
 ---
 
@@ -531,6 +529,195 @@ Bearer your_access_token
 ```
 
 Swagger/OpenAPI is disabled in the `prod` profile.
+
+---
+
+## Deployment
+
+The application is deployed as a production web service using Render and uses Neon PostgreSQL as the production database.
+
+### Production Application
+
+The live production application is available at:
+
+```text
+https://jobtracker-shr7.onrender.com
+```
+
+The application runs using the Spring Boot `prod` profile.
+
+Production deployment uses:
+
+- Render Web Service
+- Neon PostgreSQL
+- Docker
+- GitHub repository
+- Render Auto-Deploy
+- Java 17
+- Spring Boot
+- Flyway database migrations
+
+### Deployment Flow
+
+```text
+GitHub Repository
+       ↓
+Push to main
+       ↓
+Render Auto-Deploy
+       ↓
+Docker Build
+       ↓
+Spring Boot Application
+       ↓
+Neon PostgreSQL
+       ↓
+Production Service
+```
+
+Whenever a new commit is pushed to the `main` branch, Render automatically starts a new deployment.
+
+### Production Environment Variables
+
+Production secrets and configuration are stored in Render environment variables.
+
+```text
+SPRING_PROFILES_ACTIVE=prod
+
+DB_URL=<Neon PostgreSQL JDBC URL>
+DB_USERNAME=<database username>
+DB_PASSWORD=<database password>
+
+JWT_SECRET=<JWT secret>
+
+PORT=10000
+
+APP_MAIL_FROM=<configured sender email>
+MAIL_USERNAME=<SMTP username>
+MAIL_PASSWORD=<SMTP password>
+```
+
+> Sensitive production values such as database passwords, JWT secrets, and SMTP credentials are stored as Render environment variables and are not committed to the repository.
+
+### Production Database
+
+The production application uses Neon PostgreSQL.
+
+Flyway automatically validates and applies database migrations during application startup.
+
+The production database currently uses schema migration version:
+
+```text
+12
+```
+
+A successful deployment contains logs similar to:
+
+```text
+Successfully validated 12 migrations
+Schema "public" is up to date. No migration necessary.
+```
+
+### Production Port
+
+Render provides the `PORT` environment variable to the application.
+
+The Spring Boot application binds to:
+
+```text
+PORT=10000
+```
+
+The production server uses embedded Tomcat.
+
+Example startup message:
+
+```text
+Tomcat started on port 10000 (http) with context path '/'
+```
+
+### Automatic Deployment
+
+Render is connected to the GitHub repository:
+
+```text
+https://github.com/kapil0307/jobtracker
+```
+
+Deployments are automatically triggered when changes are pushed to `main`.
+
+Example:
+
+```bash
+git add .
+git commit -m "Update application"
+git push origin main
+```
+
+After the push:
+
+```text
+GitHub
+  ↓
+Render detects new commit
+  ↓
+Docker build
+  ↓
+Application deployment
+  ↓
+Production service starts
+  ↓
+Service becomes live
+```
+
+### Production Startup Verification
+
+A successful deployment is confirmed when the Render logs contain:
+
+```text
+Tomcat started on port 10000 (http) with context path '/'
+```
+
+followed by:
+
+```text
+Started JobtrackerApplication
+```
+
+and Render reports:
+
+```text
+Your service is live 🎉
+```
+
+The production deployment verifies that:
+
+- Spring Boot starts successfully
+- The `prod` profile is active
+- PostgreSQL connection succeeds
+- Flyway migrations are validated
+- Hibernate initializes successfully
+- Spring Security starts successfully
+- Tomcat binds to the Render-provided port
+- The application becomes publicly accessible
+
+### Production Authentication
+
+Protected endpoints require JWT authentication.
+
+For example, accessing a protected endpoint without authentication returns:
+
+```json
+{
+  "timestamp": "2026-08-09T15:07:16.436526982",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Authentication is required",
+  "path": "/"
+}
+```
+
+This confirms that Spring Security is active in the production environment.
 
 ---
 
@@ -604,7 +791,6 @@ CANCELLED
 RESCHEDULED
 ```
 
-
 ### Notifications
 
 ```text
@@ -632,7 +818,6 @@ GET /api/dashboard
 ```
 
 ---
-
 
 ## Interview Reminder Flow
 
@@ -847,16 +1032,16 @@ Errors use a consistent JSON response structure:
 
 Common HTTP status codes:
 
-| Status | Meaning |
-|---:|---|
-| 200 | OK |
-| 201 | Created |
-| 204 | No Content |
-| 400 | Bad Request |
-| 401 | Unauthorized |
-| 403 | Forbidden |
-| 404 | Not Found |
-| 409 | Conflict |
+| Status | Meaning      |
+| -----: | ------------ |
+|    200 | OK           |
+|    201 | Created      |
+|    204 | No Content   |
+|    400 | Bad Request  |
+|    401 | Unauthorized |
+|    403 | Forbidden    |
+|    404 | Not Found    |
+|    409 | Conflict     |
 
 ---
 
@@ -887,7 +1072,6 @@ Errors: 0
 Skipped: 0
 BUILD SUCCESS
 ```
-
 
 ---
 

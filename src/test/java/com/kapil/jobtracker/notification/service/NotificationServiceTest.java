@@ -62,8 +62,8 @@ public class NotificationServiceTest {
         interview=new Interview();
         interview.setId(100L);
         interview.setJobApplication(jobApplication);
-        interview.setScheduledAt(LocalDateTime.of(2026, 8,9,15,0)
-        );
+        interview.setScheduledAt(LocalDateTime.now().plusDays(2));
+
 
         notification = Notification.builder()
                 .id(20L)
@@ -72,7 +72,7 @@ public class NotificationServiceTest {
                 .type(NotificationType.INTERVIEW_REMINDER)
                 .title("Upcoming Interview")
                 .message("Interview remainder")
-                .scheduledFor(LocalDateTime.of(2026,8,9,15,0))
+                .scheduledFor(LocalDateTime.now().plusDays(1))
                 .status(NotificationStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -92,21 +92,49 @@ public class NotificationServiceTest {
     }
 
     @Test
-    void shouldCreateNewInterviewReminder(){
+    void shouldCreateNewInterviewReminder() {
+
+        LocalDateTime scheduledAt = LocalDateTime.now().plusDays(2);
+        interview.setScheduledAt(scheduledAt);
+
         when(notificationRepo.findByInterviewId(100L))
                 .thenReturn(Optional.empty());
+
         notificationService.createOrUpdateInterviewReminder(interview);
-        ArgumentCaptor<Notification> captor =ArgumentCaptor.forClass(Notification.class);
+
+        ArgumentCaptor<Notification> captor =
+                ArgumentCaptor.forClass(Notification.class);
 
         verify(notificationRepo).save(captor.capture());
+
         Notification savedNotification = captor.getValue();
 
-        assertEquals(NotificationType.INTERVIEW_REMINDER, savedNotification.getType());
-        assertEquals(NotificationStatus.PENDING, savedNotification.getStatus());
-        assertEquals(interview.getScheduledAt().minusHours(24), savedNotification.getScheduledFor());
+        assertEquals(
+                NotificationType.INTERVIEW_REMINDER,
+                savedNotification.getType()
+        );
+
+        assertEquals(
+                NotificationStatus.PENDING,
+                savedNotification.getStatus()
+        );
+
+        assertEquals(
+                scheduledAt.minusHours(24),
+                savedNotification.getScheduledFor()
+        );
+
         assertNull(savedNotification.getSentAt());
-        assertEquals("Upcoming Interview", savedNotification.getTitle());
-        assertTrue(savedNotification.getMessage().contains("Java Backend Developer"));
+
+        assertEquals(
+                "Upcoming Interview",
+                savedNotification.getTitle()
+        );
+
+        assertTrue(
+                savedNotification.getMessage()
+                        .contains("Java Backend Developer")
+        );
     }
 
     @Test
